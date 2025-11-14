@@ -160,7 +160,7 @@ app.post('/auth/resend-otp', async (req, res) => {
 });
 
 // ✅ 5. جلب بيانات البطاقة الشخصية (Get Person Card Info)
-app.get('/person-card', async (req, res) => {
+/*app.get('/person-card', async (req, res) => {
 
   const token = req.headers['authorization'];
 
@@ -182,8 +182,42 @@ app.get('/person-card', async (req, res) => {
     console.error(err);
     res.status(401).json({ message: "رمز الجلسة غير صالح" });
   }
+});*/
+app.get('/person-card', async (req, res) => {
+
+  const authHeader = req.headers['authorization'];
+
+  if (!authHeader) {
+    return res.status(400).json({ message: "مطلوب رمز الجلسة" });
+  }
+
+  // إزالة كلمة Bearer إن وجدت
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.split(" ")[1]
+    : authHeader;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    const [rows] = await pool.execute(
+      "SELECT * FROM person_card WHERE national_id = ?",
+      [decoded.national_id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "لم يتم العثور على بيانات البطاقة" });
+    }
+
+    res.json({ card: rows[0] });
+
+  } catch (err) {
+    console.error("JWT Error:", err.message);
+    res.status(401).json({ message: "رمز الجلسة غير صالح" });
+  }
+
 });
 
+// ✅ 6. جلب بيانات رخصة القيادة (Get Driving license Info)
 app.get('/driving-license', async (req, res) => {
   const token = req.headers['authorization'];
 
@@ -242,3 +276,4 @@ app.get('/users/:national_id/documents', async (req, res) => {
 app.listen(5000, () => {
   console.log('Server running on http://localhost:5000/health');
 });
+
