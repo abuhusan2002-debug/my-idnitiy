@@ -160,29 +160,6 @@ app.post('/auth/resend-otp', async (req, res) => {
 });
 
 // ✅ 5. جلب بيانات البطاقة الشخصية (Get Person Card Info)
-/*app.get('/person-card', async (req, res) => {
-
-  const token = req.headers['authorization'];
-
-  if (!token) {
-    return res.status(400).json({ message: "مطلوب رمز الجلسة" });
-  }
-
-  try {
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const [rows] = await pool.execute("SELECT * FROM person_card WHERE national_id = ?", [decoded.national_id]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "لم يتم العثور على بيانات البطاقة" });
-    }
-
-    res.json({ card: rows[0] });
-  } catch (err) {
-    console.error(err);
-    res.status(401).json({ message: "رمز الجلسة غير صالح" });
-  }
-});*/
 app.get('/person-card', async (req, res) => {
 
   const authHeader = req.headers['authorization'];
@@ -240,7 +217,7 @@ app.get('/driving-license', async (req, res) => {
   }
 });
 
-app.get('/users/:national_id/documents', async (req, res) => {
+/*app.get('/users/:national_id/documents', async (req, res) => {
   const { national_id } = req.params;
 
   try {
@@ -269,6 +246,42 @@ app.get('/users/:national_id/documents', async (req, res) => {
     console.error("Error fetching documents:", err);
     res.status(500).json({ message: "حدث خطأ في الخادم" });
   }
+});*/
+
+app.get('/citizen/cards', async (req, res) => {
+    const token = req.headers['authorization']?.replace("Bearer ", "");
+    if (!token) return res.status(400).json({ message: "مطلوب التوكن" });
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+
+        const [rows] = await pool.execute(
+            "SELECT * FROM citizen_documents WHERE national_id = ? AND document_type = 'card'",
+            [decoded.national_id]
+        );
+
+        res.json({ cards: rows });
+    } catch (error) {
+        res.status(401).json({ message: "رمز الجلسة غير صالح" });
+    }
+});
+
+app.get('/citizen/documents', async (req, res) => {
+    const token = req.headers['authorization']?.replace("Bearer ", "");
+    if (!token) return res.status(400).json({ message: "مطلوب التوكن" });
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+
+        const [rows] = await pool.execute(
+            "SELECT * FROM citizen_documents WHERE national_id = ? AND document_type = 'document'",
+            [decoded.national_id]
+        );
+
+        res.json({ documents: rows });
+    } catch (error) {
+        res.status(401).json({ message: "رمز الجلسة غير صالح" });
+    }
 });
 
 
@@ -276,4 +289,5 @@ app.get('/users/:national_id/documents', async (req, res) => {
 app.listen(5000, () => {
   console.log('Server running on http://localhost:5000/health');
 });
+
 
