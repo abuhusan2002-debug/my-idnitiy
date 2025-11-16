@@ -282,11 +282,8 @@ app.get('/citizen/cards', async (req, res) => {
         const decoded = jwt.verify(token, JWT_SECRET);
 
         // 🔍 جلب البطاقات فقط من citizen_documents
-        const [rows] = await pool.execute(
-            `SELECT document_id, document_name, document_number, document_image_path,
-                    issue_date, expiry_date, source_table
-             FROM citizen_documents
-             WHERE national_id = ? AND document_type = 'card'`,
+            const [rows] = await pool.execute(
+            "SELECT * FROM citizen_documents WHERE national_id = ? AND document_type = 'card'",
             [decoded.national_id]
         );
 
@@ -333,4 +330,5 @@ app.get('/citizen/documents', async (req, res) => {
 app.listen(5000, () => {
   console.log('Server running on http://localhost:5000/health');
 });
+
 
