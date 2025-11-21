@@ -29,7 +29,7 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// ✅ 1. تسجيل حساب جديد (Register)
+//  1. تسجيل حساب جديد (Register)
 app.post('/auth/register', async (req, res) => {
   const { national_id, phone, password, confirm_password } = req.body;
   
@@ -98,7 +98,7 @@ app.post('/auth/register', async (req, res) => {
 });
 
 
-// ✅ 2. تسجيل الدخول (Login)
+//  2. تسجيل الدخول (Login)
 app.post('/auth/login', async (req, res) => {
   const { national_id, password } = req.body;
 
@@ -138,7 +138,7 @@ app.post('/auth/login', async (req, res) => {
   }
 });
 
-// ✅ 3. التحقق من الرمز (Verify OTP)
+//  3. التحقق من الرمز (Verify OTP)
 app.post('/auth/verify-otp', async (req, res) => {
   const { otp } = req.body;
 
@@ -178,7 +178,7 @@ app.post('/auth/verify-otp', async (req, res) => {
 });
 
 
-// ✅ 4. إعادة إرسال رمز التحقق (Resend OTP)
+//  4. إعادة إرسال رمز التحقق (Resend OTP)
 app.post('/auth/resend-otp', async (req, res) => {
   const { token } = req.body;
 
@@ -201,7 +201,7 @@ app.post('/auth/resend-otp', async (req, res) => {
   }
 });
 
-// ✅ 5. جلب بيانات البطاقة الشخصية (Get Person Card Info)
+//  5. جلب بيانات البطاقة الشخصية (Get Person Card Info)
 app.get('/person-card', async (req, res) => {
 
   const authHeader = req.headers['authorization'];
@@ -226,7 +226,23 @@ app.get('/person-card', async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ message: "لم يتم العثور على بيانات البطاقة" });
     }
+    //-----------------------------------------------------------------
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
 
+        const cards = rows.map(card => {
+            let path = person_card.profile_image_path;
+
+            if (path && !path.startsWith('/')) {
+                path = '/' + path;
+            }
+
+            return {
+                ...card,
+                profile_image_url: path ? `${baseUrl}${path}` : null
+            };
+        });
+    //------------------------------------------------------------------
+    
     res.json({ card: rows[0] });
 
   } catch (err) {
@@ -236,7 +252,7 @@ app.get('/person-card', async (req, res) => {
 
 });
 
-// ✅ 6. جلب بيانات رخصة القيادة (Get Driving license Info)
+//  6. جلب بيانات رخصة القيادة (Get Driving license Info)
 app.get('/driving-license', async (req, res) => {
   const authHeader = req.headers['authorization'];
 
@@ -264,60 +280,7 @@ app.get('/driving-license', async (req, res) => {
   }
 });
 
-// ✅ 7. جلب البطاقات (Get Cards)
-/*app.get('/citizen/cards', async (req, res) => {
-    const token = req.headers['authorization']?.replace("Bearer ", "");
-    if (!token) return res.status(400).json({ message: "مطلوب التوكن" });
-
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-
-        const [rows] = await pool.execute(
-            "SELECT * FROM citizen_documents WHERE national_id = ? AND document_type = 'card'",
-            [decoded.national_id]
-        );
-
-        res.json({ cards: rows });
-    } catch (error) {
-        res.status(401).json({ message: "رمز الجلسة غير صالح" });
-    }
-});*/
-// 📌 جلب بطاقات المواطن فقط
-/*app.get('/citizen/cards', async (req, res) => {
-    const token = req.headers['authorization']?.replace("Bearer ", "");
-    if (!token) {
-        return res.status(400).json({ message: "مطلوب التوكن" });
-    }
-
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-
-        // 🔍 جلب البطاقات فقط من citizen_documents
-            const [rows] = await pool.execute(
-            "SELECT * FROM citizen_documents WHERE national_id = ? AND document_type = 'card'",
-            [decoded.national_id]
-        );
-
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-
-        // 🔗 تحويل المسار إلى رابط URL كامل
-        const cards = rows.map(card => ({
-            ...card,
-            document_image_url: card.document_image_path 
-                ? `${baseUrl}${card.document_image_path}` 
-                : null
-        }));
-
-        return res.json({ message: "تم جلب البطاقات", cards });
-
-    } catch (error) {
-        console.error(error);
-        return res.status(401).json({ message: "رمز الجلسة غير صالح" });
-    }
-});*/
-
-//app.use('/uploads', express.static('uploads')); // مهم جداً لخدمة الصور
-
+//  7. جلب البطاقات (Get Cards)
 app.get('/citizen/cards', async (req, res) => {
     const token = req.headers['authorization']?.replace("Bearer ", "");
     if (!token) {
@@ -357,7 +320,7 @@ app.get('/citizen/cards', async (req, res) => {
 });
 
 
-// ✅ 8. جلب المستندات (Get Documents)
+//  8. جلب المستندات (Get Documents)
 app.get('/citizen/documents', async (req, res) => {
     const token = req.headers['authorization']?.replace("Bearer ", "");
     if (!token) return res.status(400).json({ message: "مطلوب التوكن" });
@@ -381,6 +344,7 @@ app.get('/citizen/documents', async (req, res) => {
 app.listen(5000, () => {
   console.log('Server running on http://localhost:5000/health');
 });
+
 
 
 
