@@ -8,11 +8,10 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const app = express();
+app.enable("trust proxy");
 app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json());
-
-app.enable("trust proxy");
 
 app.use('/uploads', express.static('uploads'));
 
@@ -360,6 +359,7 @@ app.get('/citizen/documents', async (req, res) => {
 app.listen(5000, () => {
   console.log('Server running on http://localhost:5000/health');
 });
+
 
 
 
