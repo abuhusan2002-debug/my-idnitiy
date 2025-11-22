@@ -14,8 +14,6 @@ app.use(bodyParser.json());
 app.use('/uploads', express.static('uploads'));
 
 // مفتاح JWT
-//const JWT_SECRET = "my_secret_key";
-
 const JWT_SECRET = process.env.JWT_SECRET;
 
 //تحقق من ان سيرفر شغال
@@ -203,53 +201,48 @@ app.post('/auth/resend-otp', async (req, res) => {
 
 //  5. جلب بيانات البطاقة الشخصية (Get Person Card Info)
 app.get('/person-card', async (req, res) => {
-
   const authHeader = req.headers['authorization'];
-
   if (!authHeader) {
     return res.status(400).json({ message: "مطلوب رمز الجلسة" });
   }
 
-  // إزالة كلمة Bearer إن وجدت
-  const token = authHeader.startsWith("Bearer ")
-    ? authHeader.split(" ")[1]
-    : authHeader;
-
+  // إزالة كلمة Bearer إن وُجدت
+  const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader;
+  
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
 
     const [rows] = await pool.execute(
-      "SELECT * FROM person_card WHERE national_id = ?",
+      "SELECT * FROM person_card WHERE national_id = ? LIMIT 1",
       [decoded.national_id]
     );
 
     if (rows.length === 0) {
       return res.status(404).json({ message: "لم يتم العثور على بيانات البطاقة" });
     }
-    //-----------------------------------------------------------------
-        /*const baseUrl = `${req.protocol}://${req.get('host')}`;
 
-        const cards = rows.map(card => {
-            let path = person_card.profile_image_path;
+    const card = rows[0];
 
-            if (path && !path.startsWith('/')) {
-                path = '/' + path;
-            }
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const buildUrl = (path) => {
+      if (!path) return null;
+      if (/^https?:\/\//.test(path)) return path;
+      return `${baseUrl}/${path.replace(/^\/+/, '')}`;
+    };
 
-            return {
-                ...card,
-                profile_image_url: path ? `${baseUrl}${path}` : null
-            };
-        });*/
-    //------------------------------------------------------------------
-    
-    res.json({ card: rows[0] });
+    let cardData = { ...card };
+
+    // إضافة الروابط
+    cardData.profile_image_url = buildUrl(card.profile_image_path);
+    cardData.front_image_url   = buildUrl(card.front_image);
+    cardData.back_image_url    = buildUrl(card.back_image);
+
+    return res.json({ card: cardData });
 
   } catch (err) {
     console.error("JWT Error:", err.message);
-    res.status(401).json({ message: "رمز الجلسة غير صالح" });
+    return res.status(401).json({ message: "رمز الجلسة غير صالح" });
   }
-
 });
 
 //  6. جلب بيانات رخصة القيادة (Get Driving license Info)
@@ -281,44 +274,54 @@ app.get('/driving-license', async (req, res) => {
 });
 
 //  7. جلب البطاقات (Get Cards)
-app.get('/citizen/cards', async (req, res) => {
-    const token = req.headers['authorization']?.replace("Bearer ", "");
-    if (!token) {
-        return res.status(400).json({ message: "مطلوب التوكن" });
+app.get('/driving-license', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+
+  if (!authHeader) {
+    return res.status(400).json({ message: "مطلوب رمز الجلسة" });
+  }
+
+  // إزالة كلمة Bearer إن وجدت
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.split(" ")[1]
+    : authHeader;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    const [rows] = await pool.execute(
+      "SELECT * FROM driving_licenses WHERE national_id = ? LIMIT 1",
+      [decoded.national_id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "لم يتم العثور على بيانات رخصتك" });
     }
 
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
+    const license = rows[0];
 
-        const [rows] = await pool.execute(
-            "SELECT * FROM citizen_documents WHERE national_id = ? AND document_type = 'card'",
-            [decoded.national_id]
-        );
+    // بناء رابط كامل عبر السيرفر
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const buildUrl = (path) => {
+      if (!path) return null;
+      if (/^https?:\/\//.test(path)) return path; // إذا كان رابطًا جاهزًا
+      return `${baseUrl}/${path.replace(/^\/+/, '')}`; // تركيب رابط كامل
+    };
 
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
+    // نسخ كل الحقول مرة واحدة
+    let licenseData = { ...license };
 
-        const cards = rows.map(card => {
-            let path = card.document_image_path;
+    // هنا اكتب فقط أسماء أعمدة الصور في جدول driving_license
+    licenseData.front_image_url  = buildUrl(license.front_image_driver);
+    licenseData.back_image_url   = buildUrl(license.back_image_driver);
 
-            if (path && !path.startsWith('/')) {
-                path = '/' + path;
-            }
+    return res.json({message: "تم جلب بيانات رخصتك", license: licenseData });
 
-            return {
-                ...card,
-                document_image_url: path ? `${baseUrl}${path}` : null
-            };
-        });
-
-        return res.json({ message: "تم جلب البطاقات", cards });
-        console.log("Get Cards Done");
-
-    } catch (error) {
-        console.error(error);
-        return res.status(401).json({ message: "رمز الجلسة غير صالح" });
-    }
+  } catch (err) {
+    console.error("JWT Error:", err.message);
+    return res.status(401).json({ message: "رمز الجلسة غير صالح" });
+  }
 });
-
 
 //  8. جلب المستندات (Get Documents)
 app.get('/citizen/documents', async (req, res) => {
@@ -339,11 +342,11 @@ app.get('/citizen/documents', async (req, res) => {
     }
 });
 
-
 // تشغيل السيرفر
 app.listen(5000, () => {
   console.log('Server running on http://localhost:5000/health');
 });
+
 
 
 
