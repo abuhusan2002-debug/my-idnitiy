@@ -369,7 +369,7 @@ app.get('/export/person-card/pdf', async (req, res) => {
   const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader;
 
   try {
-    const decoded = jwt.verify(authHeader, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
 
     const [rows] = await pool.execute(
       "SELECT * FROM person_card WHERE national_id = ?",
@@ -511,4 +511,5 @@ app.get('/citizen/documents', async (req, res) => {
 app.listen(5000, () => {
   console.log('Server running on http://localhost:5000/health');
 });
+
 
