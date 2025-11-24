@@ -421,7 +421,7 @@ app.get('/generate-qr', async (req, res) => {
   const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader;
 
   try {
-    const decoded = jwt.verify(authHeader, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     const nationalId = decoded.national_id;
 
     // المحتوى الذي تريد ترميزه في QR
@@ -511,3 +511,4 @@ app.get('/citizen/documents', async (req, res) => {
 app.listen(5000, () => {
   console.log('Server running on http://localhost:5000/health');
 });
+
