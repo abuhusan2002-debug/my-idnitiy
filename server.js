@@ -215,6 +215,33 @@ app.post('/auth/resend-otp', async (req, res) => {
   }
 });
 
+app.delete('/auth/delete', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) return res.status(400).json({ message: "مطلوب رمز الجلسة" });
+
+  const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const nationalId = decoded.national_id;
+
+    const [users] = await pool.execute("SELECT * FROM users WHERE national_id = ? LIMIT 1", [nationalId]);
+    if (users.length === 0) return res.status(404).json({ message: "المستخدم غير موجود" });
+
+    await pool.execute("DELETE FROM users WHERE national_id = ?", [nationalId]);
+
+    return res.json({ message: "تم حذف الحساب نهائيًا" });
+    
+  } catch (err) {
+    console.error("Delete user error:", err);
+    
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: "رمز الجلسة غير صالح" });
+    }
+    return res.status(500).json({ message: "خطأ في الخادم" });
+  }
+});
+
 //تابع لتحويل مسار الصورة الى رابط URL 
   function buildUrl(req, filePath) {
     if (!filePath) return null;
@@ -510,6 +537,7 @@ app.get('/citizen/documents', async (req, res) => {
 app.listen(5000, () => {
   console.log('Server running on http://localhost:5000/health');
 });
+
 
 
 
