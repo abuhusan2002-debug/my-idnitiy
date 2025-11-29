@@ -399,6 +399,8 @@ app.get('/export/person-card/pdf', async (req, res) => {
 
     doc.end();
     
+    res.status(500).json({ message: "تم إنشاء ملف PDF لمعلومات الهوية الشخصية، وتم تحميلها على جهازك." });
+
   } catch (err) {
     console.error("PDF Error:", err);
     res.status(500).json({ message: "خطأ في إنشاء PDF" });
@@ -508,6 +510,7 @@ app.get('/citizen/documents', async (req, res) => {
 app.listen(5000, () => {
   console.log('Server running on http://localhost:5000/health');
 });
+
 
 
 
